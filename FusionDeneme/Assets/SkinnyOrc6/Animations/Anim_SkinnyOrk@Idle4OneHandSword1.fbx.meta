@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 24c7785b44027f94691dd21a5805f361
+guid: a33a03d0151810b40a5b25f4852cc9c2
 ModelImporter:
   serializedVersion: 22200
   internalIDToNameTable: []
@@ -33,11 +33,11 @@ ModelImporter:
     extraUserProperties: []
     clipAnimations:
     - serializedVersion: 16
-      name: Run2OneHandSword1
+      name: Idle4OneHandSword1
       takeName: Take 001
       internalID: 1827226128182048838
       firstFrame: 0
-      lastFrame: 21
+      lastFrame: 91
       wrapMode: 0
       orientationOffsetY: 0
       level: 0

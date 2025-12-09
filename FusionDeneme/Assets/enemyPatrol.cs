@@ -1,396 +1,5 @@
-
-
 /*
 using System.Collections;
-using UnityEngine;
-using UnityEngine.AI;
-
-public class EnemyPatrol : MonoBehaviour
-{
-    public Transform[] waypoints;        // Sahnedeki waypoint Transform'larý
-    public float waitTime = 2f;          // Her waypoint'te bekleme süresi
-    private int currentWaypoint = 0;     // Þu an hedeflenen waypoint
-
-    private NavMeshAgent agent;          // NavMeshAgent
-    private bool isWaiting = false;      // Coroutine kontrolü
-    public Animator animator;            // Animator
-    private bool isRagging = false;       // Rage durumu    
-
-    void Start()
-    {
-        agent = GetComponent<NavMeshAgent>();
-        animator = GetComponent<Animator>();
-
-        if (agent == null) Debug.LogError("NavMeshAgent eksik!");
-        if (animator == null) Debug.LogError("Animator eksik!");
-        if (waypoints == null || waypoints.Length == 0) Debug.LogError("Waypoints eksik!");
-        else MoveToWaypoint(currentWaypoint);
-    }
-
-    void Update()
-    {
-        // Link kontrolü (merdiven geçiþleri için)
-        if (agent.isOnOffMeshLink)
-        {
-            Debug.Log("LINKE GÝRDÝ - MERDÝVEN GEÇÝÞÝ BAÞLADI!");
-        }
-
-        // Waypointe ulaþýldýysa coroutine baþlat
-        if (!agent.pathPending &&
-            agent.remainingDistance <= agent.stoppingDistance &&
-            (!agent.hasPath || agent.velocity.sqrMagnitude == 0f) &&
-            !isWaiting)
-        {
-            StartCoroutine(WaitAtWaypoint());
-        }
-    }
-
-    void MoveToWaypoint(int index)
-    {
-        if (waypoints.Length == 0) return; // güvenlik
-
-        index = Mathf.Clamp(index, 0, waypoints.Length - 1); // sýnýr kontrolü
-        NavMeshHit hit;
-
-        if (NavMesh.SamplePosition(waypoints[index].position, out hit, 2f, NavMesh.AllAreas))
-        {
-            agent.SetDestination(hit.position);
-            Debug.Log("Hedef: " + index + " pozisyon: " + hit.position);
-        }
-        else
-        {
-            Debug.LogWarning("Waypoint " + index + " NavMesh üzerinde deðil!");
-        }
-    }
-
-    IEnumerator WaitAtWaypoint()
-    {
-        isWaiting = true;
-        agent.isStopped = true;
-
-        isRagging = true;
-
-        // Animator parametresi isRagging ise burayý kullanalým
-        if (animator != null)
-        {
-            animator.SetBool("Rage", true);
-        }
-
-        yield return new WaitForSeconds(waitTime);
-
-        // Sonraki waypoint
-        currentWaypoint++;
-        if (currentWaypoint >= waypoints.Length)
-            currentWaypoint = 0; // Döngüsel patrol için
-
-        agent.isStopped = false;
-        MoveToWaypoint(currentWaypoint);
-
-        // Rage bitince animasyonu kapat
-        if (animator != null)
-        {
-            animator.SetBool("Rage", false);
-        }
-
-        isWaiting = false;
-    }
-}
-*/
-
-
-/*
-using System.Collections;
-using UnityEngine;
-using UnityEngine.AI;
-
-public class EnemyPatrol : MonoBehaviour
-{
-    [Header("Waypoints & Patrol Settings")]
-    public Transform[] waypoints;        // Waypointler
-    public float waitTime = 2f;          // Her waypoint'te bekleme süresi
-    private int currentWaypoint = 0;
-
-    [Header("Components")]
-    private NavMeshAgent agent;
-    public Animator animator;
-
-    private bool isWaiting = false;
-
-    void Start()
-    {
-        agent = GetComponent<NavMeshAgent>();
-        animator = GetComponent<Animator>();
-
-        if (agent == null) Debug.LogError("NavMeshAgent eksik!");
-        if (animator == null) Debug.LogError("Animator eksik!");
-        if (waypoints == null || waypoints.Length == 0) Debug.LogError("Waypoints eksik!");
-        else MoveToWaypoint(currentWaypoint);
-    }
-
-    void Update()
-    {
-        // Merdiven (OffMeshLink) kontrolü
-        if (agent.isOnOffMeshLink && !isWaiting)
-        {
-            StartCoroutine(HandleOffMeshLink());
-            return; // Coroutine baþladýðýnda diðer waypoint kontrollerini beklet
-        }
-
-        // Waypoint kontrolü
-        if (!agent.pathPending &&
-            agent.remainingDistance <= agent.stoppingDistance &&
-            (!agent.hasPath || agent.velocity.sqrMagnitude == 0f) &&
-            !isWaiting)
-        {
-            StartCoroutine(WaitAtWaypoint());
-        }
-    }
-
-    void MoveToWaypoint(int index)
-    {
-        if (waypoints.Length == 0) return;
-
-        index = Mathf.Clamp(index, 0, waypoints.Length - 1);
-        NavMeshHit hit;
-
-        if (NavMesh.SamplePosition(waypoints[index].position, out hit, 2f, NavMesh.AllAreas))
-        {
-            agent.SetDestination(hit.position);
-            Debug.Log("Hedef: " + index + " pozisyon: " + hit.position);
-        }
-        else
-        {
-            Debug.LogWarning("Waypoint " + index + " NavMesh üzerinde deðil!");
-        }
-    }
-
-    IEnumerator WaitAtWaypoint()
-    {
-        isWaiting = true;
-        agent.isStopped = true;
-
-        // Animasyon baþlat
-        if (animator != null)
-            animator.SetBool("isRagging", true);
-
-        yield return new WaitForSeconds(waitTime);
-
-        // Sonraki waypoint
-        currentWaypoint++;
-        if (currentWaypoint >= waypoints.Length)
-            currentWaypoint = 0; // Döngüsel patrol
-
-        agent.isStopped = false;
-        MoveToWaypoint(currentWaypoint);
-
-        // Animasyonu kapat
-        if (animator != null)
-            animator.SetBool("isRagging", false);
-
-        isWaiting = false;
-    }
-
-    IEnumerator HandleOffMeshLink()
-    {
-        isWaiting = true;
-        agent.isStopped = true;
-        agent.updatePosition = false; // Lerp ile kontrol
-
-        // Animasyonu aç
-        if (animator != null)
-            animator.SetBool("isRagging", true);
-
-        OffMeshLinkData data = agent.currentOffMeshLinkData;
-        Vector3 startPos = agent.transform.position;
-        Vector3 endPos = data.endPos;
-        float duration = 1.3f; // Merdiven yüksekliðine göre ayarla
-        float elapsed = 0f;
-
-        while (elapsed < duration)
-        {
-            agent.transform.position = Vector3.Lerp(startPos, endPos, elapsed / duration);
-            elapsed += Time.deltaTime;
-            yield return null;
-        }
-
-        agent.CompleteOffMeshLink();
-        agent.updatePosition = true;
-
-        // Animasyonu kapat
-        if (animator != null)
-            animator.SetBool("isRagging", false);
-
-        agent.isStopped = false;
-        isWaiting = false;
-    }
-}
-*/
-
-
-
-/*
-
-using System.Collections;
-using UnityEngine;
-using UnityEngine.AI;
-
-public class EnemyPatrol : MonoBehaviour
-{
-    [Header("Waypoints & Patrol")]
-    public Transform[] waypoints;          // Normal patrol waypointleri
-    private int currentWaypoint = 0;
-
-    [Header("Stair Waypoints")]
-    public Transform[] stairWaypoints1;    // Merdiven 1
-    public Transform[] stairWaypoints2;    // Merdiven 2
-    public Transform[] stairWaypoints3;    // Merdiven 3
-    private bool isClimbingStairs = false;
-
-    [Header("Components")]
-    private NavMeshAgent agent;
-    public Animator animator;
-    public float waitTime = 2f;
-    public float stairSpeed = 2f;          // Merdiven Lerp hýzý
-    private bool isWaiting = false;
-
-    void Start()
-    {
-        agent = GetComponent<NavMeshAgent>();
-        animator = GetComponent<Animator>();
-
-        if (agent == null) Debug.LogError("NavMeshAgent eksik!");
-        if (animator == null) Debug.LogError("Animator eksik!");
-        if (waypoints.Length == 0) Debug.LogError("Waypoints eksik!");
-        else MoveToWaypoint(currentWaypoint);
-    }
-
-    void Update()
-    {
-        if (isClimbingStairs) return; // Merdiven sýrasýnda normal update durdur
-
-        // Normal patrol waypoint kontrolü
-        if (!agent.pathPending &&
-            agent.remainingDistance <= agent.stoppingDistance &&
-            (!agent.hasPath || agent.velocity.sqrMagnitude == 0f) &&
-            !isWaiting)
-        {
-            StartCoroutine(WaitAtWaypoint());
-        }
-
-        // Merdiven baþýna yaklaþýnca doðru diziyi kullan
-        CheckAndClimbStairs(stairWaypoints1);
-        CheckAndClimbStairs(stairWaypoints2);
-        CheckAndClimbStairs(stairWaypoints3);
-    }
-
-    void CheckAndClimbStairs(Transform[] stairWaypoints)
-    {
-        if (stairWaypoints.Length == 0 || isClimbingStairs) return;
-
-        float distanceToStart = Vector3.Distance(transform.position, stairWaypoints[0].position);
-        float distanceToEnd = Vector3.Distance(transform.position, stairWaypoints[stairWaypoints.Length - 1].position);
-
-        if (distanceToStart < 1f) // çýkýþ
-            StartCoroutine(ClimbStairs(stairWaypoints, true));
-        else if (distanceToEnd < 1f) // iniþ
-            StartCoroutine(ClimbStairs(stairWaypoints, false));
-    }
-
-    void MoveToWaypoint(int index)
-    {
-        if (waypoints.Length == 0) return;
-        index = Mathf.Clamp(index, 0, waypoints.Length - 1);
-        agent.SetDestination(waypoints[index].position);
-    }
-
-    IEnumerator WaitAtWaypoint()
-    {
-        isWaiting = true;
-        agent.isStopped = true;
-
-        if (animator != null)
-            animator.SetBool("isRagging", true);
-
-        yield return new WaitForSeconds(waitTime);
-
-        currentWaypoint++;
-        if (currentWaypoint >= waypoints.Length)
-            currentWaypoint = 0;
-
-        agent.isStopped = false;
-        MoveToWaypoint(currentWaypoint);
-
-        if (animator != null)
-            animator.SetBool("isRagging", false);
-
-        isWaiting = false;
-    }
-
-    IEnumerator ClimbStairs(Transform[] waypoints, bool goingUp)
-    {
-        isClimbingStairs = true;
-        agent.isStopped = true;
-        agent.updatePosition = false;
-
-        if (animator != null)
-            animator.SetBool("isRagging", true);
-
-        int start = goingUp ? 0 : waypoints.Length - 1;
-        int end = goingUp ? waypoints.Length : -1;
-        int step = goingUp ? 1 : -1;
-
-        for (int i = start; i != end; i += step)
-        {
-            Vector3 startPos = transform.position;
-            Vector3 endPos = waypoints[i].position;
-            float distance = Vector3.Distance(startPos, endPos);
-            float elapsed = 0f;
-            float duration = distance / stairSpeed;
-
-            while (elapsed < duration)
-            {
-                transform.position = Vector3.Lerp(startPos, endPos, elapsed / duration);
-                elapsed += Time.deltaTime;
-                yield return null;
-            }
-
-            transform.position = endPos; // pozisyonu kesinleþtir
-        }
-
-        if (animator != null)
-            animator.SetBool("isRagging", false);
-
-        agent.isStopped = false;
-        agent.updatePosition = true;
-        isClimbingStairs = false;
-
-        MoveToWaypoint(currentWaypoint);
-    }
-
-    // Scene görünürlüðü için Gizmos
-    void OnDrawGizmos()
-    {
-        DrawStairGizmos(stairWaypoints1, Color.cyan);
-        DrawStairGizmos(stairWaypoints2, Color.magenta);
-        DrawStairGizmos(stairWaypoints3, Color.yellow);
-    }
-
-    void DrawStairGizmos(Transform[] stairWaypoints, Color color)
-    {
-        if (stairWaypoints == null || stairWaypoints.Length == 0) return;
-
-        Gizmos.color = color;
-        for (int i = 0; i < stairWaypoints.Length; i++)
-        {
-            if (stairWaypoints[i] != null)
-                Gizmos.DrawSphere(stairWaypoints[i].position, 0.1f);
-
-            if (i < stairWaypoints.Length - 1 && stairWaypoints[i + 1] != null)
-                Gizmos.DrawLine(stairWaypoints[i].position, stairWaypoints[i + 1].position);
-        }
-    }
-}
-*/using System.Collections;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -565,5 +174,397 @@ public class EnemyPatrol : MonoBehaviour
                 Gizmos.DrawCube(waypoints[i].position + Vector3.up * 0.05f, Vector3.one * 0.2f);
             }
         }
+    }
+}
+*/
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.AI;
+
+[RequireComponent(typeof(NavMeshAgent))]
+[RequireComponent(typeof(SphereCollider))]
+[RequireComponent(typeof(Animator))]
+[RequireComponent(typeof(AudioSource))] // AudioSource bileþenini otomatik ekler
+public class AdvancedEnemyAI : MonoBehaviour
+{
+    public enum EnemyState { Patrol, Chase, Tired, Attacking }
+
+    [Header("Current State")]
+    public EnemyState currentState = EnemyState.Patrol;
+    [SerializeField] private Transform currentTarget;
+
+    [Header("Audio Settings")] // YENÝ EKLENEN KISIM
+    public AudioClip rageSound; // Buraya Boss_Roar.mp3'ü sürükleyeceksin
+    private AudioSource audioSource;
+
+    [Header("Detection & Co-op Settings")]
+    public LayerMask playerLayer;
+    public float detectionRadius = 5f;
+    public int itemCollected = 2;
+
+    private List<Transform> playersInZone = new List<Transform>();
+    private SphereCollider detectionCollider;
+
+    [Header("Movement Speeds")]
+    public float patrolSpeed = 3.5f;
+    public float chaseSpeed = 7.0f;
+    public float tiredSpeed = 2.0f;
+
+    [Header("Combat Settings")]
+    public float attackRange = 1.5f;
+    public float attackCooldown = 1.5f;
+    private float lastAttackTime = 0f;
+
+    [Header("Stamina System")]
+    public float maxChaseDuration = 5f;
+    public float tiredRecoveryDuration = 3f;
+    private float currentChaseTimer = 0f;
+    private float currentTiredTimer = 0f;
+
+    [Header("Waypoints")]
+    public Transform[] waypoints;
+    public int stairsStartIndex = -1;
+    public int stairsEndIndex = -1;
+    public int returnWaypointAfterStairs = 0;
+    public float waitTimeAtWaypoint = 2.0f;
+
+    // --- Private Variables ---
+    private NavMeshAgent agent;
+    private Animator animator;
+    private int currentWaypoint = 0;
+    private bool waiting = false;
+    private Coroutine patrolCoroutine;
+
+    // Merdiven
+    private bool stairsCompleted = false;
+    private float lastStairsExitTime = -999f;
+    public float stairsCooldown = 8f;
+
+    void Start()
+    {
+        agent = GetComponent<NavMeshAgent>();
+        animator = GetComponent<Animator>();
+        detectionCollider = GetComponent<SphereCollider>();
+        detectionCollider.isTrigger = true;
+
+        // AudioSource bileþenini al
+        audioSource = GetComponent<AudioSource>();
+
+        UpdateDetectionRadius();
+
+        if (waypoints != null && waypoints.Length > 0)
+        {
+            agent.speed = patrolSpeed;
+            SetDestinationToCurrent();
+        }
+    }
+
+    void Update()
+    {
+        // Speed parametresini sürekli güncelle (Blend Tree için kritik)
+        animator.SetFloat("Speed", agent.velocity.magnitude);
+
+        UpdateDetectionRadius();
+
+        if (currentTarget == null && currentState != EnemyState.Patrol)
+        {
+            ReturnToPatrol();
+        }
+
+        switch (currentState)
+        {
+            case EnemyState.Patrol:
+                PatrolLogic();
+                break;
+
+            case EnemyState.Chase:
+                ChaseLogic();
+                break;
+
+            case EnemyState.Tired:
+                TiredLogic();
+                break;
+
+            case EnemyState.Attacking:
+                if (currentTarget != null && Vector3.Distance(transform.position, currentTarget.position) > attackRange)
+                {
+                    currentState = EnemyState.Chase;
+                    agent.isStopped = false;
+                }
+                break;
+        }
+    }
+
+    // --- LOGIC: KOVALAMA & YORULMA ---
+
+    void ChaseLogic()
+    {
+        if (currentTarget == null) return;
+
+        agent.isStopped = false;
+        agent.speed = chaseSpeed;
+        agent.SetDestination(currentTarget.position);
+
+        currentChaseTimer += Time.deltaTime;
+        if (currentChaseTimer >= maxChaseDuration)
+        {
+            SwitchToTired();
+            return;
+        }
+
+        if (Vector3.Distance(transform.position, currentTarget.position) <= attackRange)
+        {
+            PerformAttack();
+        }
+    }
+
+    void TiredLogic()
+    {
+        if (currentTarget == null) return;
+
+        agent.isStopped = false;
+        agent.speed = tiredSpeed;
+        agent.SetDestination(currentTarget.position);
+
+        currentTiredTimer += Time.deltaTime;
+        if (currentTiredTimer >= tiredRecoveryDuration)
+        {
+            currentState = EnemyState.Chase;
+            currentChaseTimer = 0f;
+            agent.speed = chaseSpeed;
+            animator.SetBool("isTired", false);
+        }
+
+        if (Vector3.Distance(transform.position, currentTarget.position) <= attackRange)
+        {
+            PerformAttack();
+        }
+    }
+
+    void SwitchToTired()
+    {
+        currentState = EnemyState.Tired;
+        currentTiredTimer = 0f;
+        agent.speed = tiredSpeed;
+        animator.SetBool("isTired", true);
+    }
+
+    // --- LOGIC: SALDIRI ---
+
+    void PerformAttack()
+    {
+        if (Time.time - lastAttackTime > attackCooldown)
+        {
+            currentState = EnemyState.Attacking;
+            agent.isStopped = true;
+            agent.velocity = Vector3.zero;
+
+            transform.LookAt(new Vector3(currentTarget.position.x, transform.position.y, currentTarget.position.z));
+
+            animator.SetTrigger("Attack");
+
+            lastAttackTime = Time.time;
+        }
+    }
+
+    // --- HEDEF SEÇÝMÝ ---
+    void SelectBestTarget()
+    {
+        if (playersInZone.Count == 0)
+        {
+            currentTarget = null;
+            return;
+        }
+
+        Transform bestTarget = null;
+        float lowestSanity = 9999f;
+
+        foreach (Transform potentialPlayer in playersInZone)
+        {
+            if (potentialPlayer == null) continue;
+
+            float dist = Vector3.Distance(transform.position, potentialPlayer.position);
+            if (dist < lowestSanity)
+            {
+                lowestSanity = dist;
+                bestTarget = potentialPlayer;
+            }
+        }
+
+        currentTarget = bestTarget;
+
+        if (currentTarget != null)
+        {
+            StartChase();
+        }
+    }
+
+    // --- TRIGGER YÖNETÝMÝ ---
+    private void OnTriggerEnter(Collider other)
+    {
+        if (((1 << other.gameObject.layer) & playerLayer) != 0)
+        {
+            if (!playersInZone.Contains(other.transform))
+                playersInZone.Add(other.transform);
+
+            SelectBestTarget();
+        }
+    }
+
+    private void OnTriggerExit(Collider other)
+    {
+        if (((1 << other.gameObject.layer) & playerLayer) != 0)
+        {
+            if (playersInZone.Contains(other.transform))
+                playersInZone.Remove(other.transform);
+
+            if (currentTarget == other.transform)
+            {
+                if (playersInZone.Count > 0) SelectBestTarget();
+                else ReturnToPatrol();
+            }
+        }
+    }
+
+    void StartChase()
+    {
+        if (currentState == EnemyState.Patrol)
+        {
+            currentChaseTimer = 0f;
+            animator.SetBool("isRaging", false);
+            if (patrolCoroutine != null) StopCoroutine(patrolCoroutine);
+            waiting = false;
+        }
+
+        if (currentState != EnemyState.Tired)
+        {
+            currentState = EnemyState.Chase;
+            agent.speed = chaseSpeed;
+        }
+    }
+
+    void ReturnToPatrol()
+    {
+        currentState = EnemyState.Patrol;
+        currentTarget = null;
+        agent.speed = patrolSpeed;
+        agent.isStopped = false;
+        animator.SetBool("isTired", false);
+        SetDestinationToCurrent();
+    }
+
+    public void UpdateDetectionRadius()
+    {
+        if (detectionCollider == null) return;
+        detectionCollider.radius = itemCollected switch
+        {
+            1 => 3f,
+            2 => 5f,
+            3 => 8f,
+            4 => 12f,
+            5 => 16f,
+            6 => 25f,
+            _ => 5f
+        };
+    }
+
+    // --- DEVRÝYE VE WAYPOINT MANTIÐI ---
+    void PatrolLogic()
+    {
+        if (agent.pathPending || waiting) return;
+
+        if (agent.isOnOffMeshLink)
+        {
+            StartCoroutine(TraverseOffMeshLink());
+            return;
+        }
+
+        if (agent.remainingDistance <= agent.stoppingDistance)
+            OnArrivedAtWaypoint();
+    }
+
+    private void OnArrivedAtWaypoint()
+    {
+        if (IsInStairsRange(currentWaypoint))
+        {
+            if (currentWaypoint == stairsEndIndex)
+            {
+                stairsCompleted = true;
+                lastStairsExitTime = Time.time;
+                currentWaypoint = Mathf.Clamp(returnWaypointAfterStairs, 0, waypoints.Length - 1);
+            }
+            else
+            {
+                currentWaypoint = Mathf.Min(currentWaypoint + 1, waypoints.Length - 1);
+            }
+            patrolCoroutine = StartCoroutine(WaitAndMove(0.5f, false));
+        }
+        else
+        {
+            if (stairsStartIndex >= 0 && !IsInStairsRange(currentWaypoint))
+            {
+                if (currentWaypoint + 1 == stairsStartIndex && (Time.time - lastStairsExitTime) > stairsCooldown)
+                {
+                    currentWaypoint = stairsStartIndex;
+                    patrolCoroutine = StartCoroutine(WaitAndMove(waitTimeAtWaypoint, true));
+                    return;
+                }
+            }
+
+            currentWaypoint = (currentWaypoint + 1) % waypoints.Length;
+            patrolCoroutine = StartCoroutine(WaitAndMove(waitTimeAtWaypoint, true));
+        }
+    }
+
+    private IEnumerator WaitAndMove(float wait, bool triggerRage)
+    {
+        waiting = true;
+        agent.isStopped = true;
+
+        // RAGE ANÝMASYONU VE SESÝ
+        if (triggerRage)
+        {
+            animator.SetBool("isRaging", true);
+
+            // --- YENÝ EKLENEN SES KODU ---
+            if (audioSource != null && rageSound != null)
+            {
+                audioSource.PlayOneShot(rageSound);
+            }
+        }
+
+        yield return new WaitForSeconds(wait);
+
+        if (triggerRage) animator.SetBool("isRaging", false);
+
+        waiting = false;
+
+        if (currentState == EnemyState.Patrol)
+        {
+            agent.isStopped = false;
+            SetDestinationToCurrent();
+        }
+    }
+
+    private void SetDestinationToCurrent()
+    {
+        if (waypoints == null || waypoints.Length == 0) return;
+        agent.SetDestination(waypoints[currentWaypoint].position);
+    }
+
+    private bool IsInStairsRange(int index)
+    {
+        if (stairsStartIndex < 0 || stairsEndIndex < stairsStartIndex) return false;
+        return index >= stairsStartIndex && index <= stairsEndIndex;
+    }
+
+    private IEnumerator TraverseOffMeshLink()
+    {
+        OffMeshLinkData data = agent.currentOffMeshLinkData;
+        Vector3 end = data.endPos + Vector3.up * agent.baseOffset;
+        agent.CompleteOffMeshLink();
+        agent.transform.position = end;
+        yield return null;
     }
 }
